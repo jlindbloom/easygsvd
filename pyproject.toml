@@ -1,0 +1,27 @@
+[tool.hatch.build.targets.wheel]
+packages = ["easygsvd"]
+
+[build-system]
+requires = ["hatchling", "numpy", "scipy"]
+build-backend = "hatchling.build"
+
+[project]
+name = "easygsvd"
+version = "0.0.1"
+authors = [
+  { name="Jonathan Lindbloom", email="jonathan@lindbloom.com" },
+]
+description = "A pure-python, friendly interface to the generalized singular value decomposition (GSVD)."
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+keywords = ["generalized singular value decomposition", "GSVD"]
+
+[project.urls]
+"Homepage" = "https://github.com/jlindbloom/easygsvd"
+"Bug Tracker" = "https://github.com/jlindbloom/easygsvd/issues"
