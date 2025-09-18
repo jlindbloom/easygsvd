@@ -17,16 +17,9 @@ def complete_orthogonal(Qhat):
 
 
 
-def random_rank_matrix(
-    m: int,
-    n: int,
-    r: int,
-    *,
-    singular_values: np.ndarray | None = None,
-    seed: int | None = None,
-    verify: bool = False,
-    return_factors: bool = False,
-) -> np.ndarray | tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+
+
+def random_rank_matrix(m, n, r, *, singular_values=None, seed=None, verify=False, return_factors=False):
     """
     Generate an m x n matrix with exact rank r.
 
@@ -102,6 +95,9 @@ def random_rank_matrix(
     if return_factors:
         return A, QU, s, QV
     return A
+
+
+
 
 def _orthonormal_basis(A, svd_tol=None):
     """
