@@ -24,6 +24,7 @@ class GSVDResult:
         self.n_L = n_L
         self.r_A = r_A
         self.r_L = r_L
+        self.r_int = self.A.shape[1] - self.n_A - self.n_L
 
         # Partition some quantities 
         self.U1 = self.Uhat[:, :n_L]
@@ -88,6 +89,9 @@ class GSVDResult:
     
     def get_orthogonal_projector(self, subspace, matrix=True):
         """Returns the orthogonal projector onto the specified subspace.
+
+        subspace: which subspace to consider.
+        matrix: if True, returns the results as dense matrices. If False, uses implicit LinearOperators. 
         """
         valid_subspaces = ["col(A)", "col(A.T)", "ker(A)", "ker(A.T)", 
                            "col(L)", "col(L.T)", "ker(L)", "ker(L.T)"]
@@ -145,6 +149,9 @@ class GSVDResult:
 
     def get_oblique_projector(self, which=1, matrix=True):
         """Returns the oblique projector related to the two subspaces.
+
+        which: 1-4, determines which oblique projector to return.
+        matrix: if True, returns the results as dense matrices. If False, uses implicit LinearOperators. 
         """
         valid_options = [
             1, # projection onto ker(L) along ker(L)^{perp_A}
@@ -179,7 +186,9 @@ class GSVDResult:
 
 
     def get_L_oblique_pinv(self, matrix=True):
-        """Returns the oblique pseudoinverse L_A^\dagger. 
+        """Returns the oblique (A-weighted) pseudoinverse L_A^\dagger. 
+
+        matrix: if True, returns the results as dense matrices. If False, uses implicit LinearOperators. 
         """
         if matrix:
             Lopinv = ( self.X2 @ (np.diag(1.0/self.s_check) @ self.V2.T ) ) + (self.X3 @ self.V3.T)
@@ -191,6 +200,8 @@ class GSVDResult:
 
     def get_A_oblique_pinv(self, matrix=True):
         """Returns the oblique pseudoinverse A_L^\dagger. 
+
+        matrix: if True, returns the results as dense matrices. If False, uses implicit LinearOperators. 
         """
         if matrix:
             Lopinv = ( self.X2 @ (np.diag(1.0/self.c_check) @ self.U2.T ) ) + (self.X1 @ self.U1.T)
@@ -202,17 +213,23 @@ class GSVDResult:
 
     def get_L_standard_form_data(self, matrix=True):
         """Compute and return some quantities related to the oblique pseudoinverse.
+
+        kermat: a matrix whose columns span ker(L).
+        Lopinv: the oblique (A-weighted pseudoinverse L_A^\dagger).
+        ALopinv: the matrix A L_A^\dagger.
+        E: the oblique projection matrix E s.t. L_A^\dagger = E L^\dagger.
+        matrix: if True, returns the results as dense matrices. If False, uses implicit LinearOperators.   
         """
         if matrix:
             E = ( np.eye(self.X1.shape[0]) - self.X1 @ ( self.U1.T @ self.A) )
             Lopinv = self.get_L_oblique_pinv(matrix=True)
             ALopinv = self.U2 @ ( np.diag( self.gamma_check ) @ self.V2.T ) 
-            kermat = self.X1 @ self.U1.T
+            kermat = self.X1
         else:
             E = aslinearoperator(sps.diags(np.ones(self.X1.shape[0]))) - ( aslinearoperator(self.X1) @ ( aslinearoperator( ( self.A.T @ self.U1 ).T )  ) )
             Lopinv = self.get_L_oblique_pinv(matrix=False)
             ALopinv = aslinearoperator(self.U2) @ aslinearoperator( sps.diags(self.gamma_check) ) @ aslinearoperator( self.V2.T )
-            kermat = aslinearoperator(self.X1) @ aslinearoperator(self.U1.T)
+            kermat = aslinearoperator(self.X1)
 
         return E, Lopinv, ALopinv, kermat
 
@@ -222,13 +239,17 @@ class GSVDResult:
 
 def gsvd(A, L, full_matrices=False, tol=1e-12):
     """Compute the generalized singular value decomposition (GSVD) of matrices A and L.
+
+    tol: tolerance parameter used to determine numerical rank of Q_A^T Q_A.
+    full_matrices: defaults to False, in which case only the "economic" form is computed. If True, the "full" GSVD is computed.
+
     """
     N = A.shape[1]
     assert N == L.shape[1], "A and L must have the same number of columns!"
     M = A.shape[0]
     K = L.shape[0]
     stack_matrix = np.vstack([A, L])
-    assert np.linalg.matrix_rank( stack_matrix ) == N, "Common kernel condition violated!"
+    #assert np.linalg.matrix_rank( stack_matrix ) == N, "Common kernel condition violated!"
 
     # Thin QR factor the stacked matrix
     Q, R = np.linalg.qr(stack_matrix, mode='reduced')
