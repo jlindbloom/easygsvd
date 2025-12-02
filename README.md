@@ -12,6 +12,8 @@ A pure-Python, friendly interface to the generalized singular value decompositio
   - A-weighted and L-weighted oblique pseudoinverses.
 - An **incremental API** for appending columns to `(A, L)` and updating the GSVD efficiently.
 
+See [the documentation](https://github.com/jlindbloom/easygsvd/blob/main/easygsvd_docs.pdf) for more details.
+
 > **Note:** This implementation assumes the stacked matrix `np.vstack([A, L])`
 > has **full column rank**. If this condition is violated (initially or after appending columns), a `LinAlgError` is raised.
 
