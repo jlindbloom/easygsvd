@@ -116,59 +116,67 @@ class GSVDResult:
 
         if subspace == "col(A)":
             if matrix:
-                return self.Uhat @ self.Uhat.T
+                return self.Uhat @ self.Uhat.conj().T
             else:
-                return aslinearoperator(self.Uhat) @ aslinearoperator(self.Uhat.T)
+                Uop = aslinearoperator(self.Uhat)
+                return Uop @ Uop.H
 
         elif subspace == "col(A.T)":
             Z = np.hstack([self.Y1, self.Y2])
             Q, R = np.linalg.qr(Z, mode="reduced")
             if matrix:
-                return Q @ Q.T
+                return Q @ Q.conj().T
             else:
-                return aslinearoperator(Q) @ aslinearoperator(Q.T)
+                Qop = aslinearoperator(Q)
+                return Qop @ Qop.H
 
         elif subspace == "ker(A)":
             Q, R = np.linalg.qr(self.X3, mode="reduced")
             if matrix:
-                return Q @ Q.T
+                return Q @ Q.conj().T
             else:
-                return aslinearoperator(Q) @ aslinearoperator(Q.T)
+                Qop = aslinearoperator(Q)
+                return Qop @ Qop.H
 
         elif subspace == "ker(A.T)":
             if matrix:
-                return np.eye(self.Uhat.shape[0]) - (self.Uhat @ self.Uhat.T)
+                return np.eye(self.Uhat.shape[0], dtype=self.Uhat.dtype) - (self.Uhat @ self.Uhat.conj().T)
             else:
-                eye_op = aslinearoperator(sps.diags(np.ones(self.Uhat.shape[0])))
-                return eye_op - (aslinearoperator(self.Uhat) @ aslinearoperator(self.Uhat.T))
+                eye_op = aslinearoperator(sps.diags(np.ones(self.Uhat.shape[0], dtype=self.Uhat.dtype)))
+                Uop = aslinearoperator(self.Uhat)
+                return eye_op - (Uop @ Uop.H)
 
         elif subspace == "col(L)":
             if matrix:
-                return self.Vhat @ self.Vhat.T
+                return self.Vhat @ self.Vhat.conj().T
             else:
-                return aslinearoperator(self.Vhat) @ aslinearoperator(self.Vhat.T)
+                Vop = aslinearoperator(self.Vhat)
+                return Vop @ Vop.H
 
         elif subspace == "col(L.T)":
             Z = np.hstack([self.Y2, self.Y3])
             Q, R = np.linalg.qr(Z, mode="reduced")
             if matrix:
-                return Q @ Q.T
+                return Q @ Q.conj().T
             else:
-                return aslinearoperator(Q) @ aslinearoperator(Q.T)
+                Qop = aslinearoperator(Q)
+                return Qop @ Qop.H
 
         elif subspace == "ker(L)":
             Q, R = np.linalg.qr(self.X1, mode="reduced")
             if matrix:
-                return Q @ Q.T
+                return Q @ Q.conj().T
             else:
-                return aslinearoperator(Q) @ aslinearoperator(Q.T)
+                Qop = aslinearoperator(Q)
+                return Qop @ Qop.H
 
         elif subspace == "ker(L.T)":
             if matrix:
-                return np.eye(self.Vhat.shape[0]) - (self.Vhat @ self.Vhat.T)
+                return np.eye(self.Vhat.shape[0], dtype=self.Vhat.dtype) - (self.Vhat @ self.Vhat.conj().T)
             else:
-                eye_op = aslinearoperator(sps.diags(np.ones(self.Vhat.shape[0])))
-                return eye_op - (aslinearoperator(self.Vhat) @ aslinearoperator(self.Vhat.T))
+                eye_op = aslinearoperator(sps.diags(np.ones(self.Vhat.shape[0], dtype=self.Vhat.dtype)))
+                Vop = aslinearoperator(self.Vhat)
+                return eye_op - (Vop @ Vop.H)
 
         else:
             raise NotImplementedError
@@ -188,35 +196,37 @@ class GSVDResult:
         if which == 1:
             # projection onto ker(L) along ker(L)^{perp_A}
             if matrix:
-                return self.X1 @ self.Y1.T
+                return self.X1 @ self.Y1.conj().T
             else:
-                return aslinearoperator(self.X1) @ aslinearoperator(self.Y1.T)
+                X1op = aslinearoperator(self.X1)
+                Y1op = aslinearoperator(self.Y1)
+                return X1op @ Y1op.H
 
         elif which == 2:
             # projection onto ker(L)^{perp_A} along ker(L)
             if matrix:
-                return (self.X2 @ self.Y2.T) + (self.X3 @ self.Y3.T)
+                return (self.X2 @ self.Y2.conj().T) + (self.X3 @ self.Y3.conj().T)
             else:
                 return (
-                    aslinearoperator(self.X2) @ aslinearoperator(self.Y2.T)
-                    + aslinearoperator(self.X3) @ aslinearoperator(self.Y3.T)
+                    aslinearoperator(self.X2) @ aslinearoperator(self.Y2).H
+                    + aslinearoperator(self.X3) @ aslinearoperator(self.Y3).H
                 )
 
         elif which == 3:
             # projection onto ker(A) along ker(A)^{perp_L}
             if matrix:
-                return self.X3 @ self.Y3.T
+                return self.X3 @ self.Y3.conj().T
             else:
-                return aslinearoperator(self.X3) @ aslinearoperator(self.Y3.T)
+                return aslinearoperator(self.X3) @ aslinearoperator(self.Y3).H
 
         elif which == 4:
             # projection onto ker(A)^{perp_L} along ker(A)
             if matrix:
-                return (self.X1 @ self.Y1.T) + (self.X2 @ self.Y2.T)
+                return (self.X1 @ self.Y1.conj().T) + (self.X2 @ self.Y2.conj().T)
             else:
                 return (
-                    aslinearoperator(self.X1) @ aslinearoperator(self.Y1.T)
-                    + aslinearoperator(self.X2) @ aslinearoperator(self.Y2.T)
+                    aslinearoperator(self.X1) @ aslinearoperator(self.Y1).H
+                    + aslinearoperator(self.X2) @ aslinearoperator(self.Y2).H
                 )
 
         else:
@@ -226,14 +236,14 @@ class GSVDResult:
     def get_L_oblique_pinv(self, matrix=True):
         r"""Returns the oblique (A-weighted) pseudoinverse \(L_A^\dagger\)."""
         if matrix:
-            Lopinv = (self.X2 @ (np.diag(1.0 / self.s_check) @ self.V2.T)) \
-                     + (self.X3 @ self.V3.T)
+            Lopinv = (self.X2 @ (np.diag(1.0 / self.s_check) @ self.V2.conj().T)) \
+                     + (self.X3 @ self.V3.conj().T)
         else:
             Lopinv = (
                 aslinearoperator(self.X2)
                 @ aslinearoperator(sps.diags(1.0 / self.s_check))
-                @ aslinearoperator(self.V2.T)
-            ) + (aslinearoperator(self.X3) @ aslinearoperator(self.V3.T))
+                @ aslinearoperator(self.V2).H
+            ) + (aslinearoperator(self.X3) @ aslinearoperator(self.V3).H)
 
         return Lopinv
     
@@ -241,14 +251,14 @@ class GSVDResult:
     def get_A_oblique_pinv(self, matrix=True):
         r"""Returns the oblique pseudoinverse \(A_L^\dagger\)."""
         if matrix:
-            Lopinv = (self.X2 @ (np.diag(1.0 / self.c_check) @ self.U2.T)) \
-                     + (self.X1 @ self.U1.T)
+            Lopinv = (self.X2 @ (np.diag(1.0 / self.c_check) @ self.U2.conj().T)) \
+                     + (self.X1 @ self.U1.conj().T)
         else:
             Lopinv = (
                 aslinearoperator(self.X2)
                 @ aslinearoperator(sps.diags(1.0 / self.c_check))
-                @ aslinearoperator(self.U2.T)
-            ) + (aslinearoperator(self.X1) @ aslinearoperator(self.U1.T))
+                @ aslinearoperator(self.U2).H
+            ) + (aslinearoperator(self.X1) @ aslinearoperator(self.U1).H)
 
         return Lopinv
     
@@ -264,20 +274,20 @@ class GSVDResult:
         kermat : matrix whose columns span ker(L)
         """
         if matrix:
-            E = np.eye(self.X1.shape[0]) - self.X1 @ (self.U1.T @ self.A)
+            E = np.eye(self.X1.shape[0], dtype=self.X1.dtype) - self.X1 @ (self.U1.conj().T @ self.A)
             Lopinv = self.get_L_oblique_pinv(matrix=True)
-            ALopinv = self.U2 @ (np.diag(self.gamma_check) @ self.V2.T)
+            ALopinv = self.U2 @ (np.diag(self.gamma_check) @ self.V2.conj().T)
             kermat = self.X1
         else:
-            E = aslinearoperator(sps.diags(np.ones(self.X1.shape[0]))) - (
+            E = aslinearoperator(sps.diags(np.ones(self.X1.shape[0], dtype=self.X1.dtype))) - (
                 aslinearoperator(self.X1)
-                @ aslinearoperator((self.A.T @ self.U1).T)
+                @ aslinearoperator(self.U1.conj().T @ self.A)
             )
             Lopinv = self.get_L_oblique_pinv(matrix=False)
             ALopinv = (
                 aslinearoperator(self.U2)
                 @ aslinearoperator(sps.diags(self.gamma_check))
-                @ aslinearoperator(self.V2.T)
+                @ aslinearoperator(self.V2).H
             )
             kermat = aslinearoperator(self.X1)
 
@@ -447,7 +457,7 @@ class _GSVDWorkspace:
         self._check_full_column_rank_from_R(R)
 
         # Gram matrix GA = Q_A^T Q_A
-        GA = self.Q_A.T @ self.Q_A
+        GA = self.Q_A.conj().T @ self.Q_A
         self.GA = GA
 
         # Eigendecomposition of GA
@@ -556,7 +566,7 @@ class _GSVDWorkspace:
         assert M_plus_K == self.M + self.K
 
         # Project onto current Q
-        y = Q.T @ c_stack
+        y = Q.conj().T @ c_stack
         r = c_stack - Q @ y
         rho = np.linalg.norm(r)
         c_norm = np.linalg.norm(c_stack) + 1e-32
@@ -591,7 +601,7 @@ class _GSVDWorkspace:
 
         # Update GA with a bordered matrix
         GA_old = self.GA
-        g = Q_A_old.T @ q_A_new  # cross terms with old columns
+        g = Q_A_old.conj().T @ q_A_new  # cross terms with old columns
         gamma = float(q_A_new @ q_A_new)
         GA_new = np.zeros((N + 1, N + 1), dtype=GA_old.dtype)
         GA_new[:N, :N] = GA_old
@@ -653,11 +663,11 @@ class _GSVDWorkspace:
         Vhat = Q_L @ (W_L_2 @ np.diag(1.0 / s_hat))
 
         # Y = X^{-T}
-        Y = np.linalg.solve(X.T, np.eye(X.shape[0], dtype=X.dtype))
+        Y = np.linalg.solve(X.conj().T, np.eye(X.shape[0], dtype=X.dtype))
 
         if full_matrices:
-            Uperp = null_space(Uhat.T)
-            Vperp = null_space(Vhat.T)
+            Uperp = null_space(Uhat.conj().T)
+            Vperp = null_space(Vhat.conj().T)
         else:
             Uperp = None
             Vperp = None

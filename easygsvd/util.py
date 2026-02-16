@@ -11,7 +11,7 @@ def complete_orthogonal(Qhat):
     """
     Qhat = np.asarray(Qhat)
     m, n = Qhat.shape
-    Qperp = null_space(Qhat.T)
+    Qperp = null_space(Qhat.conj().T)
     Qtilde = np.hstack([Qhat, Qperp])  
     return Qtilde, Qperp
 
@@ -19,7 +19,7 @@ def complete_orthogonal(Qhat):
 
 
 
-def random_rank_matrix(m, n, r, *, singular_values=None, seed=None, verify=False, return_factors=False):
+def random_rank_matrix(m, n, r, *, singular_values=None, seed=None, verify=False, return_factors=False, complex=False):
     """
     Generate an m x n matrix with exact rank r.
 
@@ -37,9 +37,12 @@ def random_rank_matrix(m, n, r, *, singular_values=None, seed=None, verify=False
     verify : bool, default False
         If True, checks np.linalg.matrix_rank(A) == r and raises if not.
     return_factors : bool, default False
-        If True, returns (A, U, s, V) where A = U @ diag(s) @ V.T,
+        If True, returns (A, U, s, V) where A = U @ diag(s) @ V^H,
         U is (m, r) with orthonormal columns, V is (n, r) with orthonormal
         columns, and s is length-r.
+    complex : bool, default False
+        If True, generate a complex-valued matrix with orthonormal factors
+        drawn from a complex normal distribution.
 
     Returns
     -------
@@ -63,17 +66,21 @@ def random_rank_matrix(m, n, r, *, singular_values=None, seed=None, verify=False
     rng = np.random.default_rng(seed)
 
     if r == 0:
-        A = np.zeros((m, n), dtype=float)
+        A = np.zeros((m, n), dtype=np.complex128 if complex else float)
         if return_factors:
-            U = np.zeros((m, 0), dtype=float)
+            U = np.zeros((m, 0), dtype=A.dtype)
             s = np.zeros((0,), dtype=float)
-            V = np.zeros((n, 0), dtype=float)
+            V = np.zeros((n, 0), dtype=A.dtype)
             return A, U, s, V
         return A
 
     # Orthonormal columns via QR
-    QU, _ = np.linalg.qr(rng.standard_normal((m, r)), mode="reduced")  # (m, r)
-    QV, _ = np.linalg.qr(rng.standard_normal((n, r)), mode="reduced")  # (n, r)
+    if complex:
+        QU, _ = np.linalg.qr(rng.standard_normal((m, r)) + 1j * rng.standard_normal((m, r)), mode="reduced")
+        QV, _ = np.linalg.qr(rng.standard_normal((n, r)) + 1j * rng.standard_normal((n, r)), mode="reduced")
+    else:
+        QU, _ = np.linalg.qr(rng.standard_normal((m, r)), mode="reduced")  # (m, r)
+        QV, _ = np.linalg.qr(rng.standard_normal((n, r)), mode="reduced")  # (n, r)
 
     if singular_values is None:
         s = rng.uniform(0.5, 2.0, size=r)
@@ -85,7 +92,7 @@ def random_rank_matrix(m, n, r, *, singular_values=None, seed=None, verify=False
             raise ValueError("All singular values must be strictly positive.")
 
     # Construct A = U diag(s) V^T
-    A = QU @ (s[:, None] * QV.T)  # Equivalent to QU @ np.diag(s) @ QV.T but faster
+    A = QU @ (s[:, None] * QV.conj().T)  # Equivalent to QU @ np.diag(s) @ QV^H but faster
 
     if verify:
         rank = np.linalg.matrix_rank(A)
@@ -150,8 +157,8 @@ def colspaces_equal(A, B, tol=1e-10, svd_tol=None, return_diagnostics=False):
     QB = _orthonormal_basis(B, svd_tol=svd_tol)
 
     # Orthogonal projectors onto col(A) and col(B)
-    PA = QA @ QA.T if QA.shape[1] > 0 else np.zeros((A.shape[0], A.shape[0]), dtype=A.dtype)
-    PB = QB @ QB.T if QB.shape[1] > 0 else np.zeros((B.shape[0], B.shape[0]), dtype=B.dtype)
+    PA = QA @ QA.conj().T if QA.shape[1] > 0 else np.zeros((A.shape[0], A.shape[0]), dtype=A.dtype)
+    PB = QB @ QB.conj().T if QB.shape[1] > 0 else np.zeros((B.shape[0], B.shape[0]), dtype=B.dtype)
 
     # Spectral norm ||PA - PB||_2 = largest singular value
     # np.linalg.norm(M, 2) returns the spectral norm for a matrix
@@ -191,26 +198,26 @@ def colspace_intersection_AT_LT(A, L, tol_rank=1e-12, tol_sv=1-1e-12):
         Singular values of Q_A^T Q_L (principal cosines), useful for diagnostics.
     """
     # Orthonormal bases for col(A^T) and col(L^T)
-    UA, sA, _ = np.linalg.svd(A.T, full_matrices=False)
+    UA, sA, _ = np.linalg.svd(A.conj().T, full_matrices=False)
     rA = np.sum(sA > tol_rank * (sA[0] if sA.size else 1.0))
     QA = UA[:, :rA]  # (n, rA)
 
-    UL, sL, _ = np.linalg.svd(L.T, full_matrices=False)
+    UL, sL, _ = np.linalg.svd(L.conj().T, full_matrices=False)
     rL = np.sum(sL > tol_rank * (sL[0] if sL.size else 1.0))
     QL = UL[:, :rL]  # (n, rL)
 
     if QA.size == 0 or QL.size == 0:
-        return np.empty((A.shape[1], 0)), np.array([])
+        return np.empty((A.shape[1], 0), dtype=A.dtype), np.array([])
 
     # Overlap SVD
-    M = QA.T @ QL                       # (rA, rL)
+    M = QA.conj().T @ QL                # (rA, rL)
     U, s, Vt = np.linalg.svd(M, full_matrices=False)
 
     # Indices where singular values ≈ 1
     idx = np.where(s >= tol_sv)[0]
 
     if idx.size == 0:
-        return np.empty((A.shape[1], 0)), s
+        return np.empty((A.shape[1], 0), dtype=A.dtype), s
 
     # Basis for the intersection (either expression is fine)
     Z = QA @ U[:, idx]                  # (n, k)
@@ -228,10 +235,10 @@ def complete_orthogonal(Qhat, tol=1e-12):
     Qhat = np.asarray(Qhat)
     m, n = Qhat.shape
     # Optional sanity check
-    if not np.allclose(Qhat.T @ Qhat, np.eye(n), atol=10*tol):
+    if not np.allclose(Qhat.conj().T @ Qhat, np.eye(n, dtype=Qhat.dtype), atol=10*tol):
         raise ValueError("Qhat columns are not orthonormal within tolerance.")
     # Orthonormal basis of null( Qhat^T ) is the orthogonal complement
-    Qperp = null_space(Qhat.T, rcond=tol)          # shape (m, m-n), orthonormal
+    Qperp = null_space(Qhat.conj().T, rcond=tol)   # shape (m, m-n), orthonormal
     Qtilde = np.hstack([Qhat, Qperp])              # shape (m, m)
     return Qtilde, Qperp
 

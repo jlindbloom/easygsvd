@@ -7,7 +7,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "easygsvd"
-version = "0.0.2"
+version = "0.0.4"
 authors = [
   { name="Jonathan Lindbloom", email="jonathan@lindbloom.com" },
 ]
