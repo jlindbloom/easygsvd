@@ -602,7 +602,7 @@ class _GSVDWorkspace:
         # Update GA with a bordered matrix
         GA_old = self.GA
         g = Q_A_old.conj().T @ q_A_new  # cross terms with old columns
-        gamma = float(q_A_new @ q_A_new)
+        gamma = float(np.vdot(q_A_new, q_A_new).real)
         GA_new = np.zeros((N + 1, N + 1), dtype=GA_old.dtype)
         GA_new[:N, :N] = GA_old
         GA_new[:N, N] = g
